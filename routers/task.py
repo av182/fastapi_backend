@@ -1,46 +1,43 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from sqlalchemy import select
+
+from database import SessionDep
+from models.tasks import TasksModel
 from schemas.task import STask, STaskAdd
 
 router = APIRouter(prefix="/tasks", tags=["Задачи"])
 
-
-tasks = []
+@router.post("", response_model=STask)
+async def create_task(
+    task: STaskAdd,
+    session: SessionDep
+):
+    # 1. Превращаем Pydantic-схему в модель БД
+    # task.model_dump() вернет словарь {"name": "...", ...}
+    # ** - это распаковка словаря
+    new_task = TasksModel(**task.model_dump())
+    
+    # 2. Добавляем в сессию
+    session.add(new_task)
+    
+    # 3. Коммитим (сохраняем на диск)
+    await session.commit()
+    
+    # 4. Обновляем объект (получаем выданный ID)
+    await session.refresh(new_task)
+    
+    # 5. Возвращаем объект БД. Pydantic сам превратит его в JSON.
+    return new_task
 
 @router.get("")
-async def get_tasks():
-    return tasks
-
-@router.post("", response_model=STask)  
-async def create_task(task: STaskAdd):
-    task_dict = task.model_dump()
-    task_dict["id"] = len(tasks) + 1
-    tasks.append(task_dict)
-    return task_dict
-
-
-@router.get("/{task_id}", status_code = status.HTTP_200_OK)
-async def get_task(task_id: int):
-    for task in tasks:
-        if task['id'] == task_id:
-            return task
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Задача не найдена"
-    )
-
-
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(task_id: int):
-    # Используем enumerate, чтобы получить и индекс, и саму задачу
-    for index, task in enumerate(tasks):
-        if task["id"] == task_id:
-            # Удаляем элемент списка по индексу
-            tasks.pop(index)
-            # Возвращаем "ничего". Это превратится в пустой ответ 204.
-            return 
+async def get_tasks(session: SessionDep):
+    # 1. Формируем запрос
+    query = select(TasksModel)
     
-    # Если цикл прошел и ничего не нашли
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Задача не найдена"
-    )
+    # 2. Выполняем запрос
+    result = await session.execute(query)
+    
+    # 3. Получаем чистые объекты (scalars) и превращаем в список (all)
+    return result.scalars().all()
