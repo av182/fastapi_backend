@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Model
 
+
 class TasksModel(Model):
     __tablename__ = "tasks"
 

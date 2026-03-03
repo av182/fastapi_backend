@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class STaskAdd(BaseModel):
     name: str = Field(..., title="Название задачи", min_length=2, max_length=100)
     description: str | None = Field(None, title="Детали задачи", max_length=300)

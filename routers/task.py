@@ -7,20 +7,17 @@ from repository import TaskRepository  # Импортируем наш новы�
 
 router = APIRouter(prefix="/tasks", tags=["Задачи"])
 
+
 @router.post("", response_model=STask)
-async def create_task(
-    task: STaskAdd,
-    session: SessionDep,
-):
+async def create_task(task: STaskAdd, session: SessionDep):
     # Вся логика сохранения ушла в репозиторий.
     # Роутер просто передает данные и ждет результат.
     task_model = await TaskRepository.add_one(task, session)
     return task_model
 
+
 @router.get("", response_model=list[STask])
-async def get_tasks(
-    session: SessionDep,
-):
+async def get_tasks(session: SessionDep):
     # Роутер не знает, как выполняется поиск (SQL? Файл? API?).
     # Ему нужен просто список задач.
     tasks = await TaskRepository.find_all(session)
