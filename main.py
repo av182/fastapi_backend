@@ -1,23 +1,11 @@
-from fastapi import FastAPI, status
-from schemas import STaskAdd, STask
+from fastapi import FastAPI, HTTPException, status
+from schemas.task import STask, STaskAdd
+from routers.task import router as tasks_router
 
 app = FastAPI()
 
-
-tasks = []
-
-@app.get("/tasks", response_model=list[STask])
-async def index():
-    return tasks
-
-# Создаем эндпоинт для добавления задачи
-@app.post("/tasks", status_code=status.HTTP_201_CREATED)
-async def add_task(task: STaskAdd):
-    task_dict = task.model_dump()
-    task_dict["id"] = len(tasks) + 1
-    tasks.append(task_dict)
-    return task_dict
-
+# Подключаем роутер к приложению
+app.include_router(tasks_router)
 
 
 if __name__ == "__main__":
